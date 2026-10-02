@@ -7,6 +7,7 @@ pub struct ActivePad(pub Option<Entity>);
 pub enum PromptStyle {
     Xbox,
     PlayStation,
+    DualSense,
     #[default]
     Generic,
 }
