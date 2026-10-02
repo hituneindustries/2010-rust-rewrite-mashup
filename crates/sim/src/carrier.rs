@@ -271,6 +271,15 @@ impl SimWorld {
         self.frame().set_origin(id, origin)
     }
 
+    pub fn set_velocity(&mut self, id: ClientId, velocity: [f32; 3]) -> bool {
+        let mut frame = self.frame();
+        let Some(player) = frame.player_mut(id) else {
+            return false;
+        };
+        player.velocity = velocity;
+        true
+    }
+
     pub fn set_legs_anim(&mut self, id: ClientId, legs_anim: i32) -> bool {
         self.frame().set_legs_anim(id, legs_anim)
     }
