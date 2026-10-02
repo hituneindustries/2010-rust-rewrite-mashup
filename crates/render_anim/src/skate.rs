@@ -281,10 +281,17 @@ fn preload_map(host: &mut Host, clip: Arc<asset_world::ClipCollision>) -> Result
     Ok(())
 }
 
-fn stop(host: &mut Host, mode: &mut SkateMode, authority: &mut net::AuthorityWorld) {
-    authority
-        .0
-        .set_external_motion(sim::ClientId(mode.client), false);
+fn stop(
+    host: &mut Host,
+    mode: &mut SkateMode,
+    authority: &mut net::AuthorityWorld,
+    preserve_velocity: bool,
+) {
+    let client = sim::ClientId(mode.client);
+    if preserve_velocity {
+        authority.0.set_velocity(client, mode.velocity.to_array());
+    }
+    authority.0.set_external_motion(client, false);
     host.enter_requested = false;
     host.activating = false;
     host.epoch = host.epoch.wrapping_add(1);
@@ -294,6 +301,7 @@ fn stop(host: &mut Host, mode: &mut SkateMode, authority: &mut net::AuthorityWor
     mode.active = false;
     mode.entering = false;
     mode.camera = None;
+    mode.velocity = Vec3::ZERO;
     mode.bones.clear();
     mode.status.clear();
     diag::info!(World, "Skate mode stopped; map session retained");
@@ -308,6 +316,7 @@ fn present(mode: &mut SkateMode, p: Pose, authority: &mut net::AuthorityWorld) {
     mode.names = p.names;
     mode.tick = p.tick;
     mode.status = p.state;
+    mode.velocity = collision::from_skate(p.velocity);
     mode.camera = p.camera.map(|(position, basis, fov)| {
         (
             Transform::from_translation(collision::from_skate(position)).looking_to(
@@ -349,7 +358,7 @@ fn update(
         .as_ref()
         .is_none_or(|a| clip.0.as_ref().is_some_and(|b| Arc::ptr_eq(a, b)));
     if (mode.active || host.enter_requested || host.activating) && (!alive || !same_map) {
-        stop(&mut host, &mut mode, authority);
+        stop(&mut host, &mut mode, authority, false);
     }
     if !same_map {
         host.send = None;
@@ -425,7 +434,7 @@ fn update(
                 present(&mut mode, p, authority);
             }
             Reply::Error(e) => {
-                stop(&mut host, &mut mode, authority);
+                stop(&mut host, &mut mode, authority, false);
                 host.send = None;
                 host.receive = None;
                 host.ready = false;
@@ -444,7 +453,8 @@ fn update(
     }
     if std::mem::take(&mut mode.toggle_requested) && alive {
         if mode.active || host.enter_requested || host.activating {
-            stop(&mut host, &mut mode, authority);
+            let preserve_velocity = mode.active;
+            stop(&mut host, &mut mode, authority, preserve_velocity);
             return;
         }
         if host.send.is_none() {
@@ -494,7 +504,7 @@ fn update(
             ))
             .is_err()
         {
-            stop(&mut host, &mut mode, authority);
+            stop(&mut host, &mut mode, authority, false);
         }
     }
 }
