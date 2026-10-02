@@ -13,7 +13,7 @@ MW2 and Skate 3.
   Steam version works.
 - **Skate 3 for Xbox 360, extracted**: its `default.xex` with the game's
   `data` folder beside it.
-- An **Xbox / XInput controller** to skate.
+- A controller to skate. **DualSense (PS5)** and Xbox/XInput pads are supported; DualSense uses PS5-style prompts automatically.
 
 ### Where does `default.xex` come from?
 
