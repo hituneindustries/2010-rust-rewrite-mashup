@@ -152,14 +152,19 @@ pub(crate) fn track_active_pad(
         1 => frame::PromptStyle::Xbox,
         2 => frame::PromptStyle::PlayStation,
         3 => frame::PromptStyle::Generic,
+        4 => frame::PromptStyle::DualSense,
         _ => active
             .0
             .and_then(|entity| gamepads.get(entity).ok())
             .map_or(frame::PromptStyle::Generic, |(_, pad, name)| {
                 let name = name.map_or("", |name| name.as_str()).to_ascii_lowercase();
-                if pad.vendor_id() == Some(0x054c)
+                let sony = pad.vendor_id() == Some(0x054c);
+                let dualsense = name.contains("dualsense")
+                    || (sony && matches!(pad.product_id(), Some(0x0ce6 | 0x0df2)));
+                if dualsense {
+                    frame::PromptStyle::DualSense
+                } else if sony
                     || name.contains("dualshock")
-                    || name.contains("dualsense")
                     || name == "wireless controller"
                 {
                     frame::PromptStyle::PlayStation
